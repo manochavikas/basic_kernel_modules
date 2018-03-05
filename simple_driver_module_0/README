@@ -1,0 +1,9 @@
+Makefile: Use it to build kernel modules. Example: make
+simple.c: Kernel module implementing init, exit and file operation methods: open, read, write, ioctl
+test-readwrite1.c: User program for testing file operation methods:open, read, write of simple driver
+test-readwrite2.c: User program for testing file operation methods:open, read, write of simple driver. Seperate fd for read and write
+test-ioctl.c: User program for testing ioctl file operation method of simple driver
+To build user application program use gcc.  Example:: gcc test-ioct.c -o test-ioctl  
+
+Monitor driver  messages by running: 
+# tail -f /var/log/syslog  
