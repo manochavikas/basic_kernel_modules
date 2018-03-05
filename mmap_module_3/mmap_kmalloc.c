@@ -47,7 +47,7 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma) {
           * vma->>vm_page_prot: protection bits received from the application
           */
 
-        vma->vm_flags |= VM_RESERVED;
+        vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
         ret = remap_pfn_range(
 	       vma, 
 	       vma->vm_start,
