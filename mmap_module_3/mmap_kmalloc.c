@@ -26,6 +26,9 @@ static char *kmalloc_ptr = NULL;
 #define LEN (16*1024) 
 
 unsigned long virt_addr;
+static dev_t dev;
+#define DEV_NAME	"TEST_MMAP"
+static struct cdev *test_mmap_cdev;
 
 static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 {
@@ -62,6 +65,42 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 	return 0;
 }
 
+static int test_mmap_open(struct inode *inode, struct file *file)
+{
+	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
+static struct  file_operations test_mmap_ops = {
+	.open = test_mmap_open,
+	.mmap =	mmap_kmalloc,
+};
+
+static int register_this_driver_as_char(void)
+{
+	int major, result;
+	result = alloc_chrdev_region(&dev, 0, 1, DEV_NAME);
+	if(result) {
+		printk(KERN_ALERT "not able to allocated character region");
+		return result;
+	}
+	major = MAJOR(dev);
+	printk(KERN_ALERT "mmap major number = %d", major);
+
+	test_mmap_cdev = cdev_alloc();
+	cdev_init(test_mmap_cdev, &test_mmap_ops);
+	test_mmap_cdev->owner = THIS_MODULE;
+
+	result = cdev_add(test_mmap_cdev, dev, 1);
+	if (result) {
+		printk("not able to register %s module\n", DEV_NAME);
+		unregister_chrdev_region(dev, 1);
+		return result;
+	}
+	printk(KERN_ALERT "%s registered as char driver\n", DEV_NAME);
+
+	return 0;
+}
 
 static int __init mmap_kmalloc_init_module (void)
 {
@@ -69,6 +108,10 @@ static int __init mmap_kmalloc_init_module (void)
 	int ret;
 
 	//Do required char driver initialization, see helloplus.c as an example 
+
+	ret = register_this_driver_as_char();
+	if(ret)
+		return ret;
 
 	/**
 	 * kmalloc() returns memory in bytes instead of PAGE_SIZE
@@ -101,7 +144,7 @@ static int __init mmap_kmalloc_init_module (void)
 		SetPageReserved(virt_to_page(virt_addr));
 	}
 	printk("kmalloc_area: 0x%p\n" , kmalloc_area);
-	printk("kmalloc_area :0x%p \t physical Address 0x%lx)\n", kmalloc_area,
+	printk("kmalloc_area :0x%p \t physical Address 0x%llx)\n", kmalloc_area,
 			virt_to_phys((void *)(kmalloc_area)));
 
 	/**
@@ -113,11 +156,19 @@ static int __init mmap_kmalloc_init_module (void)
 	return 0;
 }
 
+
+static void char_driver_cleanup(void)
+{
+	/* free cdev */
+	cdev_del(test_mmap_cdev);
+	/* free dev_t device allocated for character driver */
+	unregister_chrdev_region(dev, 1);
+
+}
 // close and cleanup module
 
-static void __exit mmap_kmalloc_cleanup_module (void)
-{
-	printk("cleaning up module\n");
+static void __exit mmap_kmalloc_cleanup_module (void) {
+	printk("cleaning up %s module\n", DEV_NAME);
 
 	for (virt_addr=(unsigned long)kmalloc_area; virt_addr < (unsigned long)kmalloc_area + LEN;
 			virt_addr+=PAGE_SIZE) {
@@ -127,4 +178,10 @@ static void __exit mmap_kmalloc_cleanup_module (void)
 	kfree(kmalloc_ptr);
 
 	// Also all required clean up for character drivers
+	char_driver_cleanup();
 }
+
+MODULE_AUTHOR("Vikas MANOCHA");
+MODULE_LICENSE("GPL");
+module_init(mmap_kmalloc_init_module);
+module_exit(mmap_kmalloc_cleanup_module);
