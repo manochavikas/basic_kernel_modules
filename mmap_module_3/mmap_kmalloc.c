@@ -104,10 +104,8 @@ static int register_this_driver_as_char(void)
 
 static int __init mmap_kmalloc_init_module (void)
 {
-	int i;
+	int i, j;
 	int ret;
-
-	//Do required char driver initialization, see helloplus.c as an example 
 
 	ret = register_this_driver_as_char();
 	if(ret)
@@ -152,6 +150,14 @@ static int __init mmap_kmalloc_init_module (void)
 	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
 	 *  user level application
 	 */
+	memset(kmalloc_area, 'Z', 2 * PAGE_SIZE);
+	for(i = 0; i < 2 * PAGE_SIZE; ) {
+		for(j = 0; j < 10; j++) {
+			*(kmalloc_area + i) = '0' + j;
+			i++;
+		}
+		j  = 0;
+	}
 
 	return 0;
 }
