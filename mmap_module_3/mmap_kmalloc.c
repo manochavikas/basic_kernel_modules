@@ -18,7 +18,7 @@
 #include <linux/slab.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-
+#include <linux/proc_fs.h>
 
 static char *kmalloc_area = NULL;
 static char *kmalloc_ptr = NULL;
@@ -29,6 +29,7 @@ unsigned long virt_addr;
 static dev_t dev;
 #define DEV_NAME	"TEST_MMAP"
 static struct cdev *test_mmap_cdev;
+bool read_flag = true;
 
 static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 {
@@ -65,11 +66,32 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 	return 0;
 }
 
+static int test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
+			       loff_t *offset)
+{
+	int len = 2 * PAGE_SIZE;
+
+	if(read_flag == true)
+		read_flag = false;
+	else {
+		read_flag = true;
+		return 0;
+	}
+
+	printk("Hello from read_proc\n");
+	copy_to_user(buf, kmalloc_area, len);
+	return len;
+}
+
 static int test_mmap_open(struct inode *inode, struct file *file)
 {
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 	return 0;
 }
+
+static struct file_operations test_mmap_proc_ops = {
+	.read = test_mmap_proc_read,
+};
 
 static struct  file_operations test_mmap_ops = {
 	.open = test_mmap_open,
@@ -111,6 +133,8 @@ static int __init mmap_kmalloc_init_module (void)
 	if(ret)
 		return ret;
 
+	proc_create("test_mmap_proc_hello", 0, NULL, &test_mmap_proc_ops);
+	read_flag = true;
 	/**
 	 * kmalloc() returns memory in bytes instead of PAGE_SIZE
 	 * mmap memory should be PAGE_SIZE and aligned on a PAGE boundary.
@@ -185,6 +209,7 @@ static void __exit mmap_kmalloc_cleanup_module (void) {
 
 	// Also all required clean up for character drivers
 	char_driver_cleanup();
+	remove_proc_entry("test_mmap_proc_hello", NULL);
 }
 
 MODULE_AUTHOR("Vikas MANOCHA");
