@@ -89,12 +89,19 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
+static int test_mmap_release(struct inode *inode, struct file *file)
+{
+	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+	return 0;
+}
+
 static struct file_operations test_mmap_proc_ops = {
 	.read = test_mmap_proc_read,
 };
 
 static struct  file_operations test_mmap_ops = {
 	.open = test_mmap_open,
+	.release = test_mmap_release,
 	.mmap =	mmap_kmalloc,
 };
 
