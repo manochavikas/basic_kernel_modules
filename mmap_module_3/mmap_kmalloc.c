@@ -66,7 +66,7 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 	return 0;
 }
 
-static int test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
+static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
 			       loff_t *offset)
 {
 	int len = 2 * PAGE_SIZE;
