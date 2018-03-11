@@ -86,27 +86,27 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 static int test_mmap_open(struct inode *inode, struct file *file)
 {
 	int i, j;
+	char *alloc_area = kmalloc_area;
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
-
 	/* reserve kmalloc memory as pages to make them remapable */
-	for (virt_addr = (unsigned long)kmalloc_area;
-	     virt_addr < (unsigned long)kmalloc_area + LEN;
+	for (virt_addr = (unsigned long)alloc_area;
+	     virt_addr < (unsigned long)alloc_area + LEN;
 	     virt_addr += PAGE_SIZE)
 		SetPageReserved(virt_to_page(virt_addr));
 
-	printk("kmalloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", kmalloc_area,
-	       virt_to_phys((void *)(kmalloc_area)));
+	printk("alloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", alloc_area,
+	       virt_to_phys((void *)(alloc_area)));
 
 	/**
 	 *  Write code to init memory with ascii 0123456789. Where ascii
 	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
 	 *  user level application
 	 */
-	memset(kmalloc_area, 'Z', 2 * PAGE_SIZE);
+	memset(alloc_area, 'Z', 2 * PAGE_SIZE);
 	for(i = 0; i < 2 * PAGE_SIZE; ) {
 		for(j = 0; j < 10; j++) {
-			*(kmalloc_area + i) = '0' + j;
+			*(alloc_area + i) = '0' + j;
 			i++;
 		}
 		j  = 0;
@@ -117,10 +117,12 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 
 static int test_mmap_release(struct inode *inode, struct file *file)
 {
+	char *alloc_area = kmalloc_area;
+
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
-	for(virt_addr = (unsigned long)kmalloc_area;
-	    virt_addr < (unsigned long)kmalloc_area + LEN;
+	for(virt_addr = (unsigned long)alloc_area;
+	    virt_addr < (unsigned long)alloc_area + LEN;
 	    virt_addr += PAGE_SIZE) {
 		// clear all pages
 		ClearPageReserved(virt_to_page(virt_addr));
