@@ -33,6 +33,7 @@ static struct cdev *test_mmap_cdev;
 bool read_flag = true;
 #define MINOR_NUMBER_0	0
 #define MINOR_NUMBER_1	1
+static struct file_operations test_mmap_ops;
 
 static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 {
@@ -147,10 +148,14 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 	file->private_data = priv;
 	printk("minor number stored in file private data pointer = %d\n", *((int *)(file->private_data)));
 
-	if(*priv == MINOR_NUMBER_0)
+	if(*priv == MINOR_NUMBER_0) {
 		alloc_area = kmalloc_area;
-	else if(*priv == MINOR_NUMBER_1)
+		test_mmap_ops.mmap = mmap_kmalloc;
+	}
+	else if(*priv == MINOR_NUMBER_1) {
 		alloc_area = vmalloc_ptr;
+		test_mmap_ops.mmap = mmap_vmalloc;
+	}
 	else {
 		printk("not supported minor number");
 		return -1;
@@ -229,7 +234,7 @@ static struct file_operations test_mmap_proc_ops = {
 	.read = test_mmap_proc_read,
 };
 
-static struct  file_operations test_mmap_ops = {
+static struct file_operations test_mmap_ops = {
 	.open = test_mmap_open,
 	.flush = test_mmap_flush,
 	.release = test_mmap_release,
