@@ -31,6 +31,8 @@ static dev_t dev;
 #define DEV_NAME	"TEST_MMAP"
 static struct cdev *test_mmap_cdev;
 bool read_flag = true;
+#define MINOR_NUMBER_0	0
+#define MINOR_NUMBER_1	1
 
 static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 {
@@ -107,8 +109,18 @@ static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
 static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
 			       loff_t *offset)
 {
-	char *alloc_area = vmalloc_ptr;
+	char *alloc_area;
 	int len = 2 * PAGE_SIZE;
+	int minor_number = *((int *)(file->private_data));
+
+	if(minor_number == MINOR_NUMBER_0)
+		alloc_area = kmalloc_area;
+	else if(minor_number == MINOR_NUMBER_1)
+		alloc_area = vmalloc_ptr;
+	else {
+		printk("%s, not supported minor number\n", __FUNCTION__);
+		return -1;
+	}
 
 	if(read_flag == true)
 		read_flag = false;
@@ -125,23 +137,34 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 static int test_mmap_open(struct inode *inode, struct file *file)
 {
 	int i, j;
-	unsigned int *priv;
-	char *alloc_area = kmalloc_area;
-	alloc_area = vmalloc_ptr;
+	int *priv;
+	char *alloc_area;
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 	printk("Major number = %d & minor number = %d\n", imajor(inode), iminor(inode));
 	priv = kmalloc(sizeof(int), GFP_KERNEL);
 	*priv = iminor(inode);
 	file->private_data = priv;
+	printk("minor number stored in file private data pointer = %d\n", *((int *)(file->private_data)));
 
-	printk("file->private_data = %d\n", *((unsigned int *)(file->private_data)));
+	if(*priv == MINOR_NUMBER_0)
+		alloc_area = kmalloc_area;
+	else if(*priv == MINOR_NUMBER_1)
+		alloc_area = vmalloc_ptr;
+	else {
+		printk("not supported minor number");
+		return -1;
+	}
 
 	/* reserve kmalloc memory as pages to make them remapable */
 	for (virt_addr = (unsigned long)alloc_area;
 	     virt_addr < (unsigned long)alloc_area + ( 2 * PAGE_SIZE);
-	     virt_addr += PAGE_SIZE)
-		SetPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
+	     virt_addr += PAGE_SIZE) {
+		if(*priv == MINOR_NUMBER_0)
+			SetPageReserved(virt_to_page((unsigned long *)virt_addr));
+		else
+			SetPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
+	}
 
 	printk("alloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", alloc_area,
 	       virt_to_phys((void *)(alloc_area)));
@@ -166,8 +189,18 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 
 static int test_mmap_release(struct inode *inode, struct file *file)
 {
-	char *alloc_area = kmalloc_area;
-	alloc_area = vmalloc_ptr;
+	char *alloc_area;
+	int minor_number = *((int *)(file->private_data));
+	printk("minor number stored in file private data pointer = %d\n", *((int *)(file->private_data)));
+
+	if(minor_number == MINOR_NUMBER_0)
+		alloc_area = kmalloc_area;
+	else if(minor_number == MINOR_NUMBER_1)
+		alloc_area = vmalloc_ptr;
+	else {
+		printk("%s, not supported minor number = %d\n", __FUNCTION__, minor_number);
+		return -1;
+	}
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
@@ -175,7 +208,10 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 	    virt_addr < (unsigned long)alloc_area + (2 * PAGE_SIZE);
 	    virt_addr += PAGE_SIZE) {
 		// clear all pages
-		ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
+		if(minor_number == MINOR_NUMBER_0)
+			ClearPageReserved(virt_to_page((unsigned long *)virt_addr));
+		else
+			ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 	}
 
 	kfree(file->private_data);
