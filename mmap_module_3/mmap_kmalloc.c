@@ -37,6 +37,7 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 	int ret;
 	unsigned long length;
 	length = vma->vm_end - vma->vm_start;
+	printk("file->private_data = %d\n", *((unsigned int *)(filp->private_data)));
 
 	// Restrict to size of device memory
 
@@ -76,6 +77,7 @@ static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
 	unsigned int length = vma->vm_end - vma->vm_start;
 
 
+	printk("file->private_data = %d\n", *((unsigned int *)(filp->private_data)));
 	if(length > 2 * PAGE_SHIFT)
 		return -EIO;
 
@@ -121,13 +123,21 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 static int test_mmap_open(struct inode *inode, struct file *file)
 {
 	int i, j;
+	unsigned int *priv;
 	char *alloc_area = kmalloc_area;
 	alloc_area = vmalloc_ptr;
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+	printk("Major number = %d & minor number = %d\n", imajor(inode), iminor(inode));
+	priv = kmalloc(sizeof(int), GFP_KERNEL);
+	*priv = iminor(inode);
+	file->private_data = priv;
+
+	printk("file->private_data = %d\n", *((unsigned int *)(file->private_data)));
+
 	/* reserve kmalloc memory as pages to make them remapable */
 	for (virt_addr = (unsigned long)alloc_area;
-	     virt_addr < (unsigned long)alloc_area + LEN;
+	     virt_addr < (unsigned long)alloc_area + ( 1 * PAGE_SIZE);
 	     virt_addr += PAGE_SIZE)
 		SetPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 
@@ -139,8 +149,8 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
 	 *  user level application
 	 */
-	memset(alloc_area, 'Z', 2 * PAGE_SIZE);
-	for(i = 0; i < 2 * PAGE_SIZE; ) {
+	memset(alloc_area, 'Z', 1 * PAGE_SIZE);
+	for(i = 0; i < 1 * PAGE_SIZE; ) {
 		for(j = 0; j < 10; j++) {
 			*(alloc_area + i) = '0' + j;
 			i++;
@@ -159,12 +169,18 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
 	for(virt_addr = (unsigned long)alloc_area;
-	    virt_addr < (unsigned long)alloc_area + LEN;
+	    virt_addr < (unsigned long)alloc_area + (1 * PAGE_SIZE);
 	    virt_addr += PAGE_SIZE) {
 		// clear all pages
 		ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 	}
 	return 0;
+}
+
+static int test_mmap_flush(struct file *file)
+{
+	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+	kfree(file->private_data);
 }
 
 static struct file_operations test_mmap_proc_ops = {
@@ -173,6 +189,7 @@ static struct file_operations test_mmap_proc_ops = {
 
 static struct  file_operations test_mmap_ops = {
 	.open = test_mmap_open,
+	.flush = test_mmap_flush,
 	.release = test_mmap_release,
 	.mmap =	mmap_vmalloc,
 };
