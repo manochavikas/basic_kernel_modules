@@ -178,13 +178,13 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 		ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 	}
 
+	kfree(file->private_data);
 	return 0;
 }
 
 static int test_mmap_flush(struct file *file)
 {
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
-	kfree(file->private_data);
 
 	return 0;
 }
