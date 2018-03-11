@@ -85,13 +85,46 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 
 static int test_mmap_open(struct inode *inode, struct file *file)
 {
+	int i, j;
+
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+
+	/* reserve kmalloc memory as pages to make them remapable */
+	for (virt_addr = (unsigned long)kmalloc_area;
+	     virt_addr < (unsigned long)kmalloc_area + LEN;
+	     virt_addr += PAGE_SIZE)
+		SetPageReserved(virt_to_page(virt_addr));
+
+	printk("kmalloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", kmalloc_area,
+	       virt_to_phys((void *)(kmalloc_area)));
+
+	/**
+	 *  Write code to init memory with ascii 0123456789. Where ascii
+	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
+	 *  user level application
+	 */
+	memset(kmalloc_area, 'Z', 2 * PAGE_SIZE);
+	for(i = 0; i < 2 * PAGE_SIZE; ) {
+		for(j = 0; j < 10; j++) {
+			*(kmalloc_area + i) = '0' + j;
+			i++;
+		}
+		j  = 0;
+	}
+
 	return 0;
 }
 
 static int test_mmap_release(struct inode *inode, struct file *file)
 {
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
+
+	for(virt_addr = (unsigned long)kmalloc_area;
+	    virt_addr < (unsigned long)kmalloc_area + LEN;
+	    virt_addr += PAGE_SIZE) {
+		// clear all pages
+		ClearPageReserved(virt_to_page(virt_addr));
+	}
 	return 0;
 }
 
@@ -133,7 +166,6 @@ static int register_this_driver_as_char(void)
 
 static int __init mmap_kmalloc_init_module (void)
 {
-	int i, j;
 	int ret;
 
 	ret = register_this_driver_as_char();
@@ -152,7 +184,7 @@ static int __init mmap_kmalloc_init_module (void)
 		printk("kmalloc failed\n");
 		return -ENOMEM;
 	}
-	printk("kmalloc_ptr at 0x%p \n", kmalloc_ptr);
+	printk("kmalloc_ptr \t: 0x%p \n", kmalloc_ptr);
 
 	/**
 	 * This is the same as:
@@ -165,30 +197,7 @@ static int __init mmap_kmalloc_init_module (void)
 
 	kmalloc_area = (char *)(((unsigned long)kmalloc_ptr + PAGE_SIZE -1) & PAGE_MASK);
 
-	printk("kmalloc_area: 0x%p\n", kmalloc_area);
-
-	/* reserve kmalloc memory as pages to make them remapable */
-	for (virt_addr=(unsigned long)kmalloc_area; virt_addr < (unsigned long)kmalloc_area + LEN;
-			virt_addr+=PAGE_SIZE) {
-		SetPageReserved(virt_to_page(virt_addr));
-	}
-	printk("kmalloc_area: 0x%p\n" , kmalloc_area);
-	printk("kmalloc_area :0x%p \t physical Address 0x%llx)\n", kmalloc_area,
-			virt_to_phys((void *)(kmalloc_area)));
-
-	/**
-	 *  Write code to init memory with ascii 0123456789. Where ascii
-	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
-	 *  user level application
-	 */
-	memset(kmalloc_area, 'Z', 2 * PAGE_SIZE);
-	for(i = 0; i < 2 * PAGE_SIZE; ) {
-		for(j = 0; j < 10; j++) {
-			*(kmalloc_area + i) = '0' + j;
-			i++;
-		}
-		j  = 0;
-	}
+	printk("kmalloc_area \t: 0x%p\n", kmalloc_area);
 
 	return 0;
 }
@@ -196,9 +205,9 @@ static int __init mmap_kmalloc_init_module (void)
 
 static void char_driver_cleanup(void)
 {
-	/* free cdev */
+	printk("free cdev\n");
 	cdev_del(test_mmap_cdev);
-	/* free dev_t device allocated for character driver */
+	printk("free dev_t device allocated for character driver\n");
 	unregister_chrdev_region(dev, 1);
 
 }
@@ -206,16 +215,12 @@ static void char_driver_cleanup(void)
 
 static void __exit mmap_kmalloc_cleanup_module (void) {
 	printk("cleaning up %s module\n", DEV_NAME);
-
-	for (virt_addr=(unsigned long)kmalloc_area; virt_addr < (unsigned long)kmalloc_area + LEN;
-			virt_addr+=PAGE_SIZE) {
-		// clear all pages
-		ClearPageReserved(virt_to_page(virt_addr));
-	}
+	printk("freeing memeory allocated to kmalloc_ptr : %p", kmalloc_ptr);
 	kfree(kmalloc_ptr);
 
 	// Also all required clean up for character drivers
 	char_driver_cleanup();
+	printk("remove test_mmap_proc_hello entry\n");
 	remove_proc_entry("test_mmap_proc_hello", NULL);
 }
 
