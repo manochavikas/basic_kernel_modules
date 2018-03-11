@@ -107,6 +107,7 @@ static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
 static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
 			       loff_t *offset)
 {
+	char *alloc_area = vmalloc_ptr;
 	int len = 2 * PAGE_SIZE;
 
 	if(read_flag == true)
@@ -117,7 +118,7 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 	}
 
 	printk("Hello from read_proc\n");
-	copy_to_user(buf, kmalloc_area, len);
+	copy_to_user(buf, alloc_area, len);
 	return len;
 }
 
