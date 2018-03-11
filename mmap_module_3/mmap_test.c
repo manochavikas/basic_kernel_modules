@@ -7,17 +7,18 @@
 #include <string.h>
 #include <sys/mman.h>
 
-#define BUFSIZE 4*1024
+#define BUFSIZE 8*1024
 char *my_string = "Hello My test string!";
 
-int main()
+int main(int argc, char *argv[])
 {
         int i, fd, len, wlen ;
         char * mptr;
         size_t size = BUFSIZE;
         char buffer[BUFSIZE];
 
-        fd = open("/dev/mmaper", O_RDWR | O_SYNC);
+	printf("opening file %s\n", argv[1]);
+        fd = open(argv[1], O_RDWR | O_SYNC);
         if( fd == -1) {
                 printf("open error...\n");
                 return -1;
