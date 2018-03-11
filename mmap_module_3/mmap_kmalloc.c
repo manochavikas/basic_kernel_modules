@@ -185,6 +185,8 @@ static int test_mmap_flush(struct file *file)
 {
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 	kfree(file->private_data);
+
+	return 0;
 }
 
 static struct file_operations test_mmap_proc_ops = {
