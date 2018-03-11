@@ -7,7 +7,8 @@
 #include <string.h>
 #include <sys/mman.h>
 
-#define BUFSIZE 64*1024
+#define BUFSIZE 4*1024
+char *my_string = "Hello My test string!";
 
 int main()
 {
@@ -50,7 +51,8 @@ int main()
         printf("mptr is %p\n", mptr);
 
         /* write to mmap memory */
-        memcpy(mptr, "MY TEST STRING!", 16);
+        //memcpy(mptr, my_string, strlen(my_string));
+        strcpy(mptr, my_string);
         memset(buffer, 0, size);
         memcpy(buffer, mptr, size-1);
         printf("mmap:  '%s'\n", buffer);
