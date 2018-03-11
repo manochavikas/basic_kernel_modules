@@ -223,7 +223,7 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int test_mmap_flush(struct file *file)
+static int test_mmap_flush(struct file *file, fl_owner_t id)
 {
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
