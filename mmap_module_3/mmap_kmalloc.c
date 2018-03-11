@@ -78,7 +78,7 @@ static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
 
 
 	printk("file->private_data = %d\n", *((unsigned int *)(filp->private_data)));
-	if(length > 2 * PAGE_SHIFT)
+	if(length > 2 * PAGE_SIZE)
 		return -EIO;
 
 	/*
@@ -97,7 +97,8 @@ static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
 			return ret;
 
 		vmalloc_area_ptr += PAGE_SIZE;
-		length = PAGE_SIZE;
+		start += PAGE_SIZE;
+		length -= PAGE_SIZE;
 	}
 
 	return 0;
@@ -137,7 +138,7 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 
 	/* reserve kmalloc memory as pages to make them remapable */
 	for (virt_addr = (unsigned long)alloc_area;
-	     virt_addr < (unsigned long)alloc_area + ( 1 * PAGE_SIZE);
+	     virt_addr < (unsigned long)alloc_area + ( 2 * PAGE_SIZE);
 	     virt_addr += PAGE_SIZE)
 		SetPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 
@@ -169,11 +170,12 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
 	for(virt_addr = (unsigned long)alloc_area;
-	    virt_addr < (unsigned long)alloc_area + (1 * PAGE_SIZE);
+	    virt_addr < (unsigned long)alloc_area + (2 * PAGE_SIZE);
 	    virt_addr += PAGE_SIZE) {
 		// clear all pages
 		ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 	}
+
 	return 0;
 }
 
