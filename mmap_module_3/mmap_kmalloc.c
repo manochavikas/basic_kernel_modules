@@ -146,14 +146,15 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 	printk("alloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", alloc_area,
 	       virt_to_phys((void *)(alloc_area)));
 
+	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 	/**
 	 *  Write code to init memory with ascii 0123456789. Where ascii
 	 *  equivalent of 0 is 48  and 9 is 58. This is read from mmap() by
 	 *  user level application
 	 */
-	memset(alloc_area, 'Z', 1 * PAGE_SIZE);
-	for(i = 0; i < 1 * PAGE_SIZE; ) {
-		for(j = 0; j < 10; j++) {
+	memset(alloc_area, 'Z', 2 * PAGE_SIZE);
+	for(i = 0; i < 2 * PAGE_SIZE; ) {
+		for(j = 0; j < 10 && i < 2 * PAGE_SIZE; j++) {
 			*(alloc_area + i) = '0' + j;
 			i++;
 		}
