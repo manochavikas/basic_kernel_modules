@@ -112,16 +112,8 @@ static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t s
 {
 	char *alloc_area;
 	int len = 2 * PAGE_SIZE;
-	int minor_number = *((int *)(file->private_data));
-
-	if(minor_number == MINOR_NUMBER_0)
-		alloc_area = kmalloc_area;
-	else if(minor_number == MINOR_NUMBER_1)
-		alloc_area = vmalloc_ptr;
-	else {
-		printk("%s, not supported minor number\n", __FUNCTION__);
-		return -1;
-	}
+	alloc_area = kmalloc_area;
+	printk("proc read only valid for kmalloc area, so minor no 0\n");
 
 	if(read_flag == true)
 		read_flag = false;
