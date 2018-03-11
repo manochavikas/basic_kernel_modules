@@ -22,6 +22,7 @@
 
 static char *kmalloc_area = NULL;
 static char *kmalloc_ptr = NULL;
+static char *vmalloc_ptr = NULL;
 
 #define LEN (16*1024) 
 
@@ -66,6 +67,40 @@ static int mmap_kmalloc(struct file * filp, struct vm_area_struct * vma)
 	return 0;
 }
 
+static int mmap_vmalloc(struct file *filp, struct vm_area_struct *vma)
+{
+	int ret;
+	unsigned long pfn;
+	char *vmalloc_area_ptr = vmalloc_ptr;
+	unsigned long start = vma->vm_start;
+	unsigned int length = vma->vm_end - vma->vm_start;
+
+
+	if(length > 2 * PAGE_SHIFT)
+		return -EIO;
+
+	/*
+	 * vmalloc pages are not contigous in physical memory while
+	 * remap_pfn_range works on continous physical length. So we
+	 * need to remap_pfn_range for each page one by one.
+	 * vmalloc_to_pfn(vmalloc_pointer) provides us the physical
+	 * address for the page (actually page framen number) vmalloc_pointer
+	 * is in.
+	 * */
+	vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
+	while(length > 0) {
+		pfn = vmalloc_to_pfn(vmalloc_area_ptr);
+		ret = remap_pfn_range(vma, start, pfn, PAGE_SIZE, vma->vm_page_prot);
+		if (ret)
+			return ret;
+
+		vmalloc_area_ptr += PAGE_SIZE;
+		length = PAGE_SIZE;
+	}
+
+	return 0;
+}
+
 static ssize_t test_mmap_proc_read(struct file *file, char __user *buf, size_t size,
 			       loff_t *offset)
 {
@@ -87,13 +122,14 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 {
 	int i, j;
 	char *alloc_area = kmalloc_area;
+	alloc_area = vmalloc_ptr;
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 	/* reserve kmalloc memory as pages to make them remapable */
 	for (virt_addr = (unsigned long)alloc_area;
 	     virt_addr < (unsigned long)alloc_area + LEN;
 	     virt_addr += PAGE_SIZE)
-		SetPageReserved(virt_to_page(virt_addr));
+		SetPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 
 	printk("alloc_area \t:0x%p \nphysical Address \t: 0x%llx\n", alloc_area,
 	       virt_to_phys((void *)(alloc_area)));
@@ -118,6 +154,7 @@ static int test_mmap_open(struct inode *inode, struct file *file)
 static int test_mmap_release(struct inode *inode, struct file *file)
 {
 	char *alloc_area = kmalloc_area;
+	alloc_area = vmalloc_ptr;
 
 	printk("inside function %s, line = %d\n", __FUNCTION__, __LINE__);
 
@@ -125,7 +162,7 @@ static int test_mmap_release(struct inode *inode, struct file *file)
 	    virt_addr < (unsigned long)alloc_area + LEN;
 	    virt_addr += PAGE_SIZE) {
 		// clear all pages
-		ClearPageReserved(virt_to_page(virt_addr));
+		ClearPageReserved(vmalloc_to_page((unsigned long *)virt_addr));
 	}
 	return 0;
 }
@@ -137,7 +174,7 @@ static struct file_operations test_mmap_proc_ops = {
 static struct  file_operations test_mmap_ops = {
 	.open = test_mmap_open,
 	.release = test_mmap_release,
-	.mmap =	mmap_kmalloc,
+	.mmap =	mmap_vmalloc,
 };
 
 static int register_this_driver_as_char(void)
@@ -201,13 +238,19 @@ static int __init mmap_kmalloc_init_module (void)
 
 	printk("kmalloc_area \t: 0x%p\n", kmalloc_area);
 
+	vmalloc_ptr = vmalloc(2 * PAGE_SIZE);
+	if (!vmalloc_ptr) {
+		printk(KERN_ALERT "not able to allocate memory to vmalloc_ptr\n");
+		return -ENOMEM;
+	}
+	printk("vmalloc_ptr \t: 0x%p\n", vmalloc_ptr);
 	return 0;
 }
 
 
 static void char_driver_cleanup(void)
 {
-	printk("free cdev\n");
+	printk("free cdev, test_mmap_cdev address = %p\n", (char *)test_mmap_cdev);
 	cdev_del(test_mmap_cdev);
 	printk("free dev_t device allocated for character driver\n");
 	unregister_chrdev_region(dev, 1);
@@ -217,8 +260,10 @@ static void char_driver_cleanup(void)
 
 static void __exit mmap_kmalloc_cleanup_module (void) {
 	printk("cleaning up %s module\n", DEV_NAME);
-	printk("freeing memeory allocated to kmalloc_ptr : %p", kmalloc_ptr);
+	printk("freeing memeory allocated to kmalloc_ptr : %p\n", kmalloc_ptr);
 	kfree(kmalloc_ptr);
+	printk("freeing memeory allocated to vmalloc_ptr : %p\n", vmalloc_ptr);
+	vfree(vmalloc_ptr);
 
 	// Also all required clean up for character drivers
 	char_driver_cleanup();
