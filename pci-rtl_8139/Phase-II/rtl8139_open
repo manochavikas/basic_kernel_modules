@@ -1,0 +1,74 @@
+static int rtl8139_open(struct net_device *netdev)
+{
+        printk("rtl8139_open:\n");
+
+	/* Get address of private structure using netdev_priv(netdev) */
+
+	/* CODE HERE */
+
+       /**
+         * Request IRQ. 
+	 * Device initialization is NOT a good place to 
+	 * request an IRQ because they can hog a valuable resource 
+	 * (limited IRQ lines on x86 PC). Therefore best place to request 
+	 * is when application open the device and free it when application 
+	 * closes it
+	 * 
+         * Arguments are:
+         *    1- irq number
+         *    2- Name of the device interrupt routine
+         *    3- PCI devices support shared IRQ
+         *    4- Name of the device, in our case it is rtl8139
+         *    5- If shared IRQ is set, then last argument identify the device 
+	 *       sharing the IRQ
+         */
+
+	/* CODE HERE */
+
+        /**
+          * Allocate consistent DMA buffers for trasmit 
+	  * and recieve. pci_alloc_consistent guarantees data 
+	  * coherency when DMA is performed. Coherent mapping allows 
+          * simultaneously access  to buffer by both cpu and device. 
+	  * Can be expensive to setup and use. Usually allocated for the whole 
+	  * time module is loaded. Function generates a bus address 
+	  * pointed by tx_bufs_dma and rx_ring_dma in rtl8139_private 
+	  * structure. These addresses are used by the PCI device. tx_bufs and 
+	  * rx_ring are used by driver for DMA.
+          * Other arguments are: 
+          *  -  PCI device structure 
+          *  -  Size of DMA - TOTAL_TX_BUF_SIZE, TOTAL_RX_BUF_SIZE
+	  * if failed free coherent buffer by calling dm_free_coherent()
+          * and return -ENOMEM
+          */
+	
+	  /* CODE HERE */
+
+        /**
+	  * Initialize the recieve (cur_rx) and trasmit (dirty_tx) descriptors
+          * in rtl8139 private structure. These keep track of recive buffer 
+	  * pointer and  transmit descriptors  
+          */
+
+	priv->cur_rx = 0;
+        priv->dirty_tx = 0;
+
+	/* There are total of four transmit buffers that will be 
+	 * using a single DMA buffer tx_bufs allocated above. 
+	 */ 
+
+	for (i = 0; i < NUM_TX_DESC; i++)
+               priv->tx_buf[i] = &priv->tx_bufs[i * TX_BUF_SIZE];
+
+	/* Initialize the hardware to make sure it is ready*/
+
+        rtl8139_hardware_start(netdev);
+
+	/* Notify the protocol layer so that it can start sending packet */
+
+	/* CODE HERE */
+
+	 printk("Exiting %s\n", __FUNCTION__);
+
+        return 0;
+}

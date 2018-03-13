@@ -1,0 +1,224 @@
+static irqreturn_t rtl8139_interrupt (int irq, void *dev_instance)
+{
+        struct net_device *netdev = (struct net_device*)dev_instance;
+        rtl8139_t *priv = netdev_priv(dev);
+        void *__iomem ioaddr = priv->mmio_addr;
+        unsigned short isr;
+        unsigned int txstatus;
+	int handled = 0;
+
+	printk("Entering %s\n", __FUNCTION__);
+
+        /**
+	  * Read ISR register value in isr variable
+          * Clear all interrupts. Reading the ISR register should do it.
+          * In some case it does n't work. To be sure, write 0xfff on
+          * the ISR register to clear the interrupts
+          */
+
+	/* CODE HERE */
+
+	/* unknown Interrupt Type */
+	if (unlikely((isr & INT_MASK) == 0))
+		goto out;
+
+	handled = 1;
+		
+	// Hardware no longer present (hotplug?) or major error, bail out
+        if (unlikely(isr == 0xFFFF))
+                goto out;	
+
+	printk("%s: interrupt status=%4.4x.\n", netdev->name, isr);
+
+        /* Check type of interrupt received. TxOK and TxErr */
+        if((isr & TxOK) || (isr & TxErr))
+        {
+         /**
+	   *  Continue processing if there are transmit buffers and 
+	   *  queue is not flow controlled 
+	   */
+          while((priv->dirty_tx != priv->cur_tx) || netif_queue_stopped(netdev))
+            {
+             /**
+               * TSD0-3 contains the status of transmit packet
+               * TSAD0-3 contains physical address of the packet in memory
+               */
+
+               txstatus = readl(ioaddr + TSD0 + priv->dirty_tx * sizeof(int));
+
+		// Update the stats counter for TX collisions */
+               priv->stats.collisions += (txstatus >> 24)&0xF;
+		
+		//check whether transmission has been concluded
+                 if(!(txstatus & (TxStatOK | TxAborted | TxUnderrun)))
+                     break; /*That means the packet is still sitting there */
+
+                 if(txstatus & TxStatOK) { /* Successfully transmitted */
+                    printk("Packet is transmitted, TxStatOK bit is set\n");
+
+                  /**
+                    * Bits 0-12 of TSD0-3 contains total bytes in the this 
+		    * descriptor. We are setting 0x1fff mask that tests 0-12 
+		    * bits of 32 bit value. Update the stats tx_bytes and 
+		    * tx_packets 
+		    */
+		
+		  /* CODE HERE */
+		  }
+
+                  else {
+                       printk ("%s: Transmit error\n");
+		       /* Update tx_errors stat */
+
+                       /* CODE HERE */
+
+         	      /* update detailed TX error-counters */
+		     if ( txstatus & TxAborted )
+                         priv->stats.tx_aborted_errors++;
+                     if ( txstatus & TxUnderrun )
+                         priv->stats.tx_fifo_errors++;
+                     if ( txstatus * TxOutOfWindow )
+                         priv->stats.tx_window_errors++;
+                     if ( txstatus * TxCarrierLost )
+                         priv->stats.tx_carrier_errors++;
+                     }
+                 
+		// Point dirty_tx to next transmit descriptor 
+ 
+		      priv->dirty_tx = (priv->dirty_tx + 1) % NUM_TX_DESC;
+
+                      if((priv->dirty_tx == priv->cur_tx) 
+					& netif_queue_stopped(netdev))
+                       {
+                               printk("wake up queue\n");
+                               netif_wake_queue(netdev);
+                       }
+               }
+        }
+
+        /**
+          * Data is moved from device to recive buffer. After the whole 
+	  * packet is transferred to recieve Buffer, the recieve packet 
+	  * header (recieve status and packet length) is written in front 
+	  * of the packet.
+          */
+
+        if(isr & RxErr) {
+               printk("\nReceive error \n");
+	  /* Update rx_errors stats */
+	 
+	  /* CODE HERE */
+        }
+
+        if(isr & RxOK) {
+               printk("Interrupt of type receive\n");
+
+	 /* Test CR register against RxBufEmty to see if driver buffer is empty */
+
+               while((readb(ioaddr + CR) & RxBufEmpty) == 0)
+               {
+                  unsigned int rx_status;
+                  unsigned short rx_size;
+                  unsigned short pkt_size;
+                  struct sk_buff *skb;
+
+		   //perform address-wrap if at end-of-buffer
+                   if(priv->cur_rx > RX_BUF_LEN)
+                      priv->cur_rx = priv->cur_rx % RX_BUF_LEN;
+
+                   /**
+                     * Recieve status and packet length is stored in the 
+		     * beginning of the packet. It should be converted to 
+		     * host (little/big) endian
+                     */
+
+	               rx_status = *(u32 *)(priv->rx_ring + priv->cur_rx);
+                       rx_size = rx_status >> 16;
+
+                       /* first two bytes are receive status register
+                        * and next two bytes are frame length
+			* Packet follows these initial four bytes
+                        */
+                       pkt_size = rx_size - 4;
+
+                       /* allocate skb buffer to copy the packet */
+
+			/* CODE HERE */
+
+                       if (skb) {
+                               skb->dev = netdev;
+
+                        /** 
+			  * Reserve the necessary bytes at the head of the 
+			  * buffer to land the IP header on a long word 
+			  * boundary. The existing ethernet drivers thus
+                          * reserve 2 bytes extra to land IP headers on a 16 
+			  * byte boundary, which is  also the start of a cache 
+		          * line and help improve performance on some platform
+			  */
+
+                          /* CODE HERE */
+
+                          /**
+			    * copy recieve buffer into skb via memcpy 
+			    * Packet is located after 4 bytes of status
+			    * register and frame length:
+			    * priv->rx_ring + priv->cur_rx + 4
+			    * Size of the packet is pkt_size = rx_size -4
+		            */
+			
+			      /* CODE HERE */
+
+                               skb_put (skb, pkt_size);
+                               skb->protocol = eth_type_trans (skb, netdev);
+
+                	      /* hand skb to the protocol layer */
+
+			      /* CODE HERE */
+
+			       /* Update stats: rx_bytes and rx_packets; */
+
+				/* CODE HERE */
+                       }
+
+                       else {
+		          printk (KERN_WARNING "%s: dropping packet.\n", netdev->name);
+          		  /* CODE HERE */
+
+			  /* Update detailed RX error-counters */
+                          if ( rx_status & (1 << 15) )
+                                priv->stats.multicast++;
+                          if ( rx_status & ((1 << 4)|(1 << 3)) )
+                                priv->stats.rx_length_errors++;
+                          if ( rx_status & (1 << 2) )
+                                priv->stats.rx_crc_errors++;
+                          if ( rx_status & (1 << 1) )
+                                priv->stats.rx_frame_errors++;
+        		}
+
+                       /* update priv->cur_rx to next writing location  */
+
+                       priv->cur_rx = (priv->cur_rx + rx_size + 4 + 3) & ~3;
+
+                       /* update CAPR. CAPR register keeps track of data driver has read */
+		WRITEW_F((u16)(priv->cur_rx-16), ioaddr + CAPR);
+               }
+        }
+
+        if(isr & CableLen)
+               printk("cable length change interrupt\n");
+        if(isr & TimeOut)
+               printk("time interrupt\n");
+        if(isr & SysErr)
+               printk("system err interrupt\n");
+
+	printk("Exiting %s\n", __FUNCTION__);
+
+out:
+	/* What is the last thing that Interrupt handler does when returning */
+	
+	printk ("ISR:%s: exiting interrupt, intr_status=%#4.4x.\n",
+                 netdev->name, readw(ioaddr + ISR));
+	
+          /* CODE HERE */
+}

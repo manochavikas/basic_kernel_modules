@@ -1,0 +1,56 @@
+static void rtl8139_hardware_start(struct net_device *netdev)
+{
+	/* Get address of device private structure and ioaddr */
+
+	/* CODE HERE */
+
+	printk("Entering %s\n", __FUNCTION__);
+
+        /********* Start of hardware specific code ****************/
+
+        /* Reset the chip. Make sure to wait for chip to reset */
+
+	/* CODE HERE */
+
+	 /* Enable Tx/Rx with flush*/
+	WRITEB_F(( readb(ioaddr + CR) & ChipCmdClear ) | CmdTxEnb | CmdRxEnb, io
+addr + CR);
+	 
+	 /**
+         * Tx config. Update Transmit Configuration Register TCR
+         * Maximum PCI burst is '6' and that is equal to 1024
+         */
+
+	WRITEL_F( 6 << TCR_DMA_BURST_SHIFT , ioaddr + TCR ); 
+
+        /* Rx config. update recieve configuration register RCR */
+	WRITEL_F(((1 << RCR_RBLEN_SHIFT) | (7 << RCR_MXDMA_SHIFT) | 
+	 	(1 << RCR_WRAP_SHIFT) | (1 << RCR_AB_SHIFT) | 
+		(1 << RCR_AM_SHIFT) | (1 << RCR_AAP_SHIFT)), ioaddr + RCR);
+
+	printk("RCR=0x%x!\n", readl(ioaddr + RCR));
+
+        /* init Tx buffer DMA addresses. Write tx_bufs_dma (bus address) in TSAD0-3 */
+        for (i = 0; i < NUM_TX_DESC; i++) {
+	  WRITEL_F( priv->tx_bufs_dma + (priv->tx_buf[i] - priv->tx_bufs), 
+		&(((u32*)(ioaddr + TSAD0))[i]) );
+	 }
+       
+        /* Do the same for recieve DMA address by writing into RBSTART - Recieve buffer start address */ 
+
+	/* CODE HERE */	
+
+        /* initialize missed packet counter */
+
+	/* CODE HERE */
+
+        /* no early-rx interrupts */
+        writew((readw(ioaddr + MULINT) & 0xF000), ioaddr + MULINT);
+
+        /* Enable all known interrupts by setting the interrupt mask and flush it.*/
+
+	/* CODE HERE */
+
+        /******* End of Hardware Specific code ************/
+}
+

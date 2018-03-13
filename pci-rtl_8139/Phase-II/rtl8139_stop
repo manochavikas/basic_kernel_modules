@@ -1,0 +1,50 @@
+static int rtl8139_stop(struct net_device *netdev)
+{
+	/* Get address of private structure and ioaddr */
+
+	/* CODE HERE */
+
+        unsigned long flags;
+
+	/* Notify protocol layer not to send any more packet to this interface */
+	/* CODE HERE */
+
+	printk("Entering %s\n", __FUNCTION__);
+
+        printk ("\nrtl8139_stop: shuting down the interface");
+
+	/* Serialize access by calling spin_lock_irqsave */
+
+	 /* CODE HERE */
+
+        /* Stop the chip's Tx and Rx DMA */
+	
+	 /* CODE HERE */
+
+        /* Disable all interrupts by clearing the interrupt mask. */
+
+        /* CODE HERE */
+
+        /* Update the error counts. */
+        netdev->stats.rx_missed_errors += readl(ioaddr+MPC);
+        writel(0, ioaddr + MPC);
+
+	/* Release spin lock */
+
+	/* CODE HERE */
+
+	/* Free irq */
+
+        /* CODE HERE */
+
+	/* Free transmit and recieve consistent buffers */
+
+	/* CODE HERE */
+
+        priv->rx_ring = NULL;
+        priv->tx_bufs = NULL;
+
+	printk("Exiting %s\n", __FUNCTION__);
+
+        return 0;
+}

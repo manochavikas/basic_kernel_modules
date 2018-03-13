@@ -1,0 +1,55 @@
+static int rtl8139_start_xmit(struct sk_buff *skb, struct net_device *netdev)
+{
+	/* Get address of private struct and ioaddr */
+	/* CODE HERE */
+
+        unsigned int entry; /* entry points to transmit descriptor used */
+
+    	printk("Entering %s\n", __FUNCTION__);
+
+	/* Use the next available transmit descriptor. */
+	 entry = (priv->cur_tx) % NUM_TX_DESC;
+
+
+        if (skb->len < TX_BUF_SIZE) {
+	/* 
+	 * Copy skb->data to DMA buffer of the current transmit descriptor
+         *  and then free the skb  
+         */
+		/* CODE HERE */
+
+        } else {
+            // Discard oversized packet by freeing it and updating tx_dropped
+
+	       /* CODE HERE */
+		printk("%s: Warning, skb-> (%d) > %d!\n", __FUNCTION__, 
+				skb->len, TX_BUF_SIZE);
+               return 0;
+        }
+
+	spin_lock_irqsave(&priv->lock, flags);
+
+	wmb();
+	
+	/* Fill the size of the packet in the status register TSD0-3
+	WRITEL_F(max(skb->len, (unsigned int)ETH_MIN_LEN),
+                       ioaddr + TSD0 + (entry * sizeof (u32)));
+
+         // Adjust the cur_tx pointer to next tranmit descriptor  
+
+	/* CODE HERE */
+
+	printk("%s cur_tx = %lu\n",__func__,(long unsigned int) priv->cur_tx);
+
+        if(priv->cur_tx == priv->dirty_tx) {
+	       printk("%s: cur_tx == dirty_tx\n", __FUNCTION__);
+               netif_stop_queue(netdev);
+        }
+	
+	spin_unlock_irqrestore(&priv->lock, flags);
+
+	printk("%s: Queued Tx packet at %p size %u to slot %d.\n",
+           netdev->name, skb->data, skb->len, (entry));
+
+        return 0;
+}
