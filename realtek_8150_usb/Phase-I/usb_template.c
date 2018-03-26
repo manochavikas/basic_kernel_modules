@@ -41,7 +41,7 @@
 
 #define VID_REALTEK	0X0BDA
 #define PID_RTL_8150	0x8150
-
+#define HAVE_NET_DEVICE_OPS
 /* Device private structure */
 
 struct rtl8150 {
