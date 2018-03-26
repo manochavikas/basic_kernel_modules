@@ -53,13 +53,6 @@ struct rtl8150 {
 	// Add rtl8150 device specific stuff later
 };
 
-
-
-static int rtl8150_open(struct net_device *dev);
-static int rtl8150_close(struct net_device *dev);
-static int rtl8150_start_xmit(struct sk_buff *skb, struct net_device *dev);
-static struct net_device_stats* rtl8150_get_stats(struct net_device *dev);
-
 static int rtl8150_open(struct net_device *dev)
 {
 	printk("rtl8150_open: Add code later\n");
@@ -276,6 +269,27 @@ static void rtl8150_disconnect(struct usb_interface *intf)
 	}
 }
 
+// Table of devices that work with this driver
+static struct usb_device_id rtl8150_table[] = {
+	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
+	{0, }
+};
+
+MODULE_DEVICE_TABLE(usb, rtl8150_table);
+
+/**
+  * This marks the usb_device_id table in the module image. This information
+  * loads the module on demand when the USBcard is inserted into  USB slot.
+  * It is part of Module auotload mechanism supported in Linux
+  */
+
+static struct usb_driver rtl8150_driver = {
+	.name =		DRV_NAME,
+	.id_table =	rtl8150_table,
+	.probe =	rtl8150_probe,
+	.disconnect =	rtl8150_disconnect
+};
+
 /************* USB init and exit routines ***************/
 static int __init usb_rtl8150_init(void)
 {
@@ -286,27 +300,6 @@ static void __exit usb_rtl8150_exit(void)
 {
 	/* CODE HERE */
 }
-
-// Table of devices that work with this driver
-static struct usb_device_id rtl8150_table[] = {
-	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
-	{0, }
-};
-
-/**
-  * This marks the usb_device_id table in the module image. This information
-  * loads the module on demand when the USBcard is inserted into  USB slot.
-  * It is part of Module auotload mechanism supported in Linux
-  */
-
-MODULE_DEVICE_TABLE(usb, rtl8150_table);
-
-static struct usb_driver rtl8150_driver = {
-	.name =		DRV_NAME,
-	.id_table =	rtl8150_table,
-	.probe =	rtl8150_probe,
-	.disconnect =	rtl8150_disconnect
-};
 
 module_init(usb_rtl8150_init);
 module_exit(usb_rtl8150_exit);
