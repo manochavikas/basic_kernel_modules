@@ -39,11 +39,12 @@
 
 #define	IDR	0x0120  	//  Device memory where MAC address is found
 
-
+#define VID_REALTEK	0X0BDA
+#define PID_RTL_8150	0x8150
 
 // Table of devices that work with this driver 
 static struct usb_device_id rtl8150_table[] = {
-	{/* CODE HERE */},
+	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
 	{0, }
 };
 
@@ -312,6 +313,6 @@ static void __exit usb_rtl8150_exit(void)
 module_init(usb_rtl8150_init);
 module_exit(usb_rtl8150_exit);
 
-MODULE_AUTHOR(" ");
+MODULE_AUTHOR("Vikas MANOCHA");
 MODULE_DESCRIPTION("USB Driver for Realtek rtl8150 USB Ethernet Wired Card");
 MODULE_LICENSE("Dual BSD/GPL");
