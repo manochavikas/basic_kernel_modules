@@ -42,20 +42,6 @@
 #define VID_REALTEK	0X0BDA
 #define PID_RTL_8150	0x8150
 
-// Table of devices that work with this driver 
-static struct usb_device_id rtl8150_table[] = {
-	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
-	{0, }
-};
-
-/** 
-  * This marks the usb_device_id table in the module image. This information 
-  * loads the module on demand when the USBcard is inserted into  USB slot. 
-  * It is part of Module auotload mechanism supported in Linux
-  */
-
-MODULE_DEVICE_TABLE(usb, rtl8150_table);
-
 /* Device private structure */
 
 struct rtl8150 {
@@ -64,24 +50,16 @@ struct rtl8150 {
 	struct net_device_stats stats;  // Net device stats
 	spinlock_t lock;
 
-	// Add rtl8150 device specific stuff later 
+	// Add rtl8150 device specific stuff later
 };
 
-static int rtl8150_probe(struct usb_interface *intf,
-			   const struct usb_device_id *id);
-static void rtl8150_disconnect(struct usb_interface *intf);
+
+
 static int rtl8150_open(struct net_device *dev);
 static int rtl8150_close(struct net_device *dev);
 static int rtl8150_start_xmit(struct sk_buff *skb, struct net_device *dev);
 static struct net_device_stats* rtl8150_get_stats(struct net_device *dev);
 
-
-static struct usb_driver rtl8150_driver = {
-	.name =		DRV_NAME,
-	.id_table =	rtl8150_table,
-	.probe =	rtl8150_probe,
-	.disconnect =	rtl8150_disconnect
-};
 
 #ifdef HAVE_NET_DEVICE_OPS
 static struct net_device_ops rtl8150_netdev_ops = {
@@ -309,6 +287,27 @@ static void __exit usb_rtl8150_exit(void)
 {
 	/* CODE HERE */
 }
+
+// Table of devices that work with this driver
+static struct usb_device_id rtl8150_table[] = {
+	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
+	{0, }
+};
+
+/**
+  * This marks the usb_device_id table in the module image. This information
+  * loads the module on demand when the USBcard is inserted into  USB slot.
+  * It is part of Module auotload mechanism supported in Linux
+  */
+
+MODULE_DEVICE_TABLE(usb, rtl8150_table);
+
+static struct usb_driver rtl8150_driver = {
+	.name =		DRV_NAME,
+	.id_table =	rtl8150_table,
+	.probe =	rtl8150_probe,
+	.disconnect =	rtl8150_disconnect
+};
 
 module_init(usb_rtl8150_init);
 module_exit(usb_rtl8150_exit);
