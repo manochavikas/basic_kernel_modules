@@ -60,6 +60,43 @@ static int rtl8150_close(struct net_device *dev);
 static int rtl8150_start_xmit(struct sk_buff *skb, struct net_device *dev);
 static struct net_device_stats* rtl8150_get_stats(struct net_device *dev);
 
+static int rtl8150_open(struct net_device *dev)
+{
+	printk("rtl8150_open: Add code later\n");
+        netif_start_queue(dev); /* transmission queue start */
+        return 0;
+
+}
+
+static int rtl8150_close(struct net_device *dev)
+{
+        printk("rtl8150_close: Add code later \n");
+        netif_stop_queue(dev); /* transmission queue stop */
+        return 0;
+
+}
+
+static int rtl8150_start_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+	printk("rtl8150_start_xmit: Add code later\n");
+        dev_kfree_skb(skb); /* Just free it for now */
+
+        return 0;
+}
+
+static struct net_device_stats* rtl8150_get_stats(struct net_device *dev)
+{
+        struct rtl8150 *priv = netdev_priv( dev );
+
+        printk("dev_get_stats: Add code later\n");
+
+        /**
+         * You cannot return NULL, make sure to return the address
+         * of net_dev_stat that is in device private structure
+         */
+
+        /* CODE HERE */
+}
 
 #ifdef HAVE_NET_DEVICE_OPS
 static struct net_device_ops rtl8150_netdev_ops = {
@@ -219,44 +256,6 @@ out:
         return -EIO;
 }
 
-static int rtl8150_open(struct net_device *dev)
-{
-	printk("rtl8150_open: Add code later\n");
-        netif_start_queue(dev); /* transmission queue start */
-        return 0;
-
-}
-
-static int rtl8150_close(struct net_device *dev)
-{
-        printk("rtl8150_close: Add code later \n");
-        netif_stop_queue(dev); /* transmission queue stop */
-        return 0;
-
-}
-
-static int rtl8150_start_xmit(struct sk_buff *skb, struct net_device *dev)
-{
-	printk("rtl8150_start_xmit: Add code later\n");
-        dev_kfree_skb(skb); /* Just free it for now */
-
-        return 0;
-	
-}
-
-static struct net_device_stats* rtl8150_get_stats(struct net_device *dev)
-{
-        struct rtl8150 *priv = netdev_priv( dev );
-
-        printk("dev_get_stats: Add code later\n");
-
-        /**
-         * You cannot return NULL, make sure to return the address 
-         * of net_dev_stat that is in device private structure
-         */
-
-        /* CODE HERE */
-}
 
 /* USB disconnect routine - required else can't rmmod */
 static void rtl8150_disconnect(struct usb_interface *intf)
