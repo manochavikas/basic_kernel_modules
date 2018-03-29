@@ -122,7 +122,7 @@ static int set_rtl_8150_register(struct usb_device *udev, u32 index, char *buff,
 static int rtl8150_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
-        struct net_device *dev;
+        struct net_device *netdev;
         struct rtl8150 *priv;
 
 	/* extract usb_device from the usb_interface structure */
@@ -148,15 +148,15 @@ static int rtl8150_probe(struct usb_interface *intf,
 	/* CODE HERE */
 
         /* sysfs stuff. Sets up device link in /sys/class/net/interface_name */
-        SET_NETDEV_DEV(dev, &intf->dev);
+        SET_NETDEV_DEV(netdev, &intf->dev);
 
 #ifdef HAVE_NET_DEVICE_OPS
-        dev->netdev_ops = &rtl8150_netdev_ops;
+        netdev->netdev_ops = &rtl8150_netdev_ops;
 #else
-        dev->open = rtl8150_open;
-        dev->stop = rtl8150_close;
-        dev->hard_start_xmit = rtl8150_start_xmit;
-        dev->get_stats = rtl8150_get_stats;
+        netdev->open = rtl8150_open;
+        netdev->stop = rtl8150_close;
+        netdev->hard_start_xmit = rtl8150_start_xmit;
+        netdev->get_stats = rtl8150_get_stats;
 #endif
 
 	/* Initialize Device private structure and initialize the spinlock*/
@@ -256,13 +256,13 @@ static int rtl8150_probe(struct usb_interface *intf,
          * other protocol information.  Value is 14 for Ethernet interfaces.
          */
 
-        dev->hard_header_len = 14;
+        netdev->hard_header_len = 14;
 
 	return 0;
 
 out:
         usb_set_intfdata(intf, NULL);
-        free_netdev(dev);
+        free_netdev(netdev);
         return -EIO;
 }
 
