@@ -124,10 +124,16 @@ static int rtl8150_probe(struct usb_interface *intf,
 {
         struct net_device *netdev;
         struct rtl8150 *priv;
+	int ret;
 
 	/* extract usb_device from the usb_interface structure */
-
 	/* CODE HERE */
+	struct usb_device *udev = interface_to_usbdev(intf);
+	priv = kmalloc(sizeof(struct rtl8150), GFP_KERNEL);
+	netdev = kmalloc(sizeof(struct net_device), GFP_KERNEL);
+
+	priv->udev = udev;
+	priv->netdev = netdev;
 
 	/**
           * Linux Network Stack works with network device not the USB device. 
@@ -258,6 +264,7 @@ static int rtl8150_probe(struct usb_interface *intf,
 
         netdev->hard_header_len = 14;
 
+        usb_set_intfdata(intf, priv);
 	return 0;
 
 out:
@@ -265,14 +272,13 @@ out:
         free_netdev(netdev);
         return -EIO;
 }
-
-
 /* USB disconnect routine - required else can't rmmod */
 static void rtl8150_disconnect(struct usb_interface *intf)
 {
 	/* Get address of device private structure */
 
 	/* CODE HERE */
+	struct rtl8150 *priv = usb_get_intfdata(intf);
 
 	if (priv) {
 	
@@ -282,6 +288,8 @@ static void rtl8150_disconnect(struct usb_interface *intf)
 	  */
 
 	  /* CODE HERE */
+		usb_set_intfdata(intf, NULL);
+		kfree(priv);
 
 	}
 }
