@@ -129,11 +129,6 @@ static int rtl8150_probe(struct usb_interface *intf,
 	/* extract usb_device from the usb_interface structure */
 	/* CODE HERE */
 	struct usb_device *udev = interface_to_usbdev(intf);
-	priv = kmalloc(sizeof(struct rtl8150), GFP_KERNEL);
-	netdev = kmalloc(sizeof(struct net_device), GFP_KERNEL);
-
-	priv->udev = udev;
-	priv->netdev = netdev;
 
 	/**
           * Linux Network Stack works with network device not the USB device. 
@@ -143,6 +138,12 @@ static int rtl8150_probe(struct usb_interface *intf,
 	  */
 	
 	/* CODE HERE */
+	netdev = alloc_etherdev(sizeof(struct rtl8150));
+	if(!netdev)
+		return -ENOMEM;
+	priv = netdev_priv(netdev);
+	priv->netdev = netdev;
+	priv->udev = udev;
 
 	/** 
          * Set the device name to DRV_NAME instead of eth via memcpy 
