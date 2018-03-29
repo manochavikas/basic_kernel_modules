@@ -257,6 +257,13 @@ static int rtl8150_probe(struct usb_interface *intf,
 
 	  /* CODE HERE */
 
+	ret = get_rtl_8150_register(udev, IDR, netdev->dev_addr, sizeof(netdev->dev_addr));
+	if(ret) {
+		dev_err(&udev->dev, "device unable to read rtl 8150 registers");
+		goto out;
+	}
+//	printk(KERN_ALERT "dev_addr = %x", netdev->dev_addr);
+
         /* Length of Ethernet frame. It is a "hardware header length", number 
          * of octets that lead the transmitted packet before IP header, or 
          * other protocol information.  Value is 14 for Ethernet interfaces.
