@@ -102,6 +102,23 @@ static struct net_device_ops rtl8150_netdev_ops = {
 
 /********* USB ROUTINES*************/
 
+#define TIMEOUT_JIFFIES		500
+
+static int get_rtl_8150_register(struct usb_device *udev, u32 index, char *buff, int size)
+{
+	unsigned int pipe = usb_rcvctrlpipe(udev, 0); // receive in ep0
+	return(usb_control_msg(udev, pipe, RTL8150_REQ_GET_REGS, RTL8150_REQT_READ,
+			      index, 0, buff, size, TIMEOUT_JIFFIES));
+}
+
+static int set_rtl_8150_register(struct usb_device *udev, u32 index, char *buff, int size)
+{
+	unsigned int pipe = usb_sndctrlpipe(udev, 0); // send in ep0
+	return(usb_control_msg(udev, pipe, RTL8150_REQ_SET_REGS, RTL8150_REQT_WRITE,
+			      index, 0, buff, size, TIMEOUT_JIFFIES));
+}
+
+
 static int rtl8150_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
