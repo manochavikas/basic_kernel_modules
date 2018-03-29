@@ -319,11 +319,17 @@ static struct usb_driver rtl8150_driver = {
 static int __init usb_rtl8150_init(void)
 {
 	/* CODE HERE */
+	int res = usb_register(&rtl8150_driver);
+	if(res) {
+		printk(KERN_ALERT "not able to register the driver with the core\n");
+	}
+	return 0;
 }
 
 static void __exit usb_rtl8150_exit(void)
 {
 	/* CODE HERE */
+	usb_deregister(&rtl8150_driver);
 }
 
 module_init(usb_rtl8150_init);
