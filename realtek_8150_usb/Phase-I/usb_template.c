@@ -295,7 +295,7 @@ static void rtl8150_disconnect(struct usb_interface *intf)
 }
 
 // Table of devices that work with this driver
-static struct usb_device_id rtl8150_table[] = {
+static const struct usb_device_id rtl8150_table[] = {
 	{USB_DEVICE(VID_REALTEK, PID_RTL_8150)},
 	{0, }
 };
