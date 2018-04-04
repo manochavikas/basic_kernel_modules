@@ -25,4 +25,5 @@ clean:
 else
     # called from kernel build system: just declare what our modules are
      obj-m := mmap_kmalloc.o
+     obj-m += kprobe_mmap_kmalloc.o
 endif
